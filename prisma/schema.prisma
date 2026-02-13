@@ -1,0 +1,105 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Order {
+  id        String   @id @default(cuid())
+  item      String
+  buyerType String
+  name      String
+  phone     String
+  qty       String
+  location  String
+  notes     String
+  status    String   @default("NEW")
+
+  unitPrice String   @default("")
+  total     String   @default("")
+
+  createdAt DateTime @default(now())
+}
+
+
+/* =======================
+   INVENTORY MODELS
+   ======================= */
+
+model FishItem {
+  id        String   @id @default(cuid())
+  type      String   // seed | bulk | fresh
+  name      String
+  detail    String
+  price     String
+  status    String   @default("Available")
+  createdAt DateTime @default(now())
+}
+
+
+model SheepItem {
+  id        String   @id @default(cuid())
+  type      String   // "live" | "mutton"
+  tagId     String   // e.g., "S-101" (sheep number)
+  weightKg  String   // keep as string for now (e.g., "32")
+  ageMonths String   // e.g., "10"
+  price     String   // e.g., "₹450/kg" or "₹12000"
+  status    String   @default("Available") // Available | Sold | Reserved
+  notes     String   @default("")
+  createdAt DateTime @default(now())
+}
+
+model VegetableItem {
+  id           String   @id @default(cuid())
+  category     String   // Leafy | Roots | Seasonal | Fruits
+  name         String   // e.g., Tomato
+  unit         String   // kg | bunch | piece
+  price        String   // e.g., "₹40/kg"
+  availableQty String   @default("") // e.g., "30 kg"
+  status       String   @default("Available")
+  notes        String   @default("")
+  createdAt    DateTime @default(now())
+}
+
+
+/* =======================
+   FISH FAMILY PACK MODELS
+   ======================= */
+
+enum FishServiceType {
+  RAW
+  CUT
+  COOKED
+  PICKLE
+}
+model FishType {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  imageUrl    String?
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  variants    FishVariant[]
+}
+
+model FishVariant {
+  id           String   @id @default(cuid())
+  fishTypeId   String
+  serviceType  String   // RAW | CUT | COOKED | PICKLE
+  sizeLabel    String
+  price        String
+  isAvailable  Boolean  @default(true)
+  prepTimeMins String?
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  fishType     FishType @relation(fields: [fishTypeId], references: [id], onDelete: Cascade)
+
+  @@index([fishTypeId])
+}
