@@ -1,0 +1,196 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  
+}
+
+//////////////////////////////////////////////////////
+// ENUMS
+//////////////////////////////////////////////////////
+
+enum Role {
+  ADMIN
+  INVENTORY
+  RIDER
+  SUPPORT
+}
+
+enum OrderStatus {
+  PLACED
+  CONFIRMED
+  PACKING
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+}
+
+enum ImageSource {
+  UPLOADED
+  SUGGESTED_API
+  PLACEHOLDER
+}
+
+enum Category {
+  FISH
+  SHEEP
+  VEGETABLES
+  RICE
+}
+
+enum FishTab {
+  TENDER_SEEDS
+  BULK_LOTS
+  FAMILY_PACKS
+}
+
+enum DeliveryType {
+  PICKUP
+  DELIVERY
+}
+
+enum PaymentMethod {
+  COD
+}
+
+//////////////////////////////////////////////////////
+// MODELS
+//////////////////////////////////////////////////////
+
+model AdminUser {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  role      Role     @default(ADMIN)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model Product {
+  id       String   @id @default(cuid())
+  category Category
+
+  name_en String
+  name_te String?
+  name_hi String?
+
+  unitLabel String
+  price     Int
+  stockQty  Int
+
+  imageUrl             String?
+  imageSource          ImageSource @default(PLACEHOLDER)
+  imageAttributionText String?
+  imageAttributionUrl  String?
+
+  isActive Boolean @default(true)
+
+  fishTab FishTab?
+  metaJson Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  orderItems OrderItem[]
+
+  @@index([category, isActive])
+  @@index([fishTab])
+}
+
+model Order {
+  id          String      @id @default(cuid())
+  orderNumber String      @unique
+  status      OrderStatus @default(PLACED)
+
+  customerName String
+  phone        String
+  email        String?
+  language     String @default("en")
+
+  deliveryType DeliveryType @default(DELIVERY)
+  addressLine1 String?
+  addressLine2 String?
+  landmark     String?
+  city         String?
+  state        String?
+  pincode      String?
+  mapLink      String?
+
+  preferredSlot String?
+  notes         String?
+
+  paymentMethod PaymentMethod @default(COD)
+
+  subtotal    Int
+  deliveryFee Int @default(0)
+  totalAmount Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  items OrderItem[]
+
+  @@index([status, createdAt])
+  @@index([phone, createdAt])
+}
+
+model OrderItem {
+  id String @id @default(cuid())
+
+  orderId   String
+  productId String
+
+  variantKey   String?
+  variantLabel String?
+
+  qty       Int
+  priceEach Int
+  lineTotal Int
+
+  nameSnapshot String
+  unitSnapshot String
+  imageUrl     String?
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+  @@index([orderId])
+}
+
+model Customer {
+  id          String            @id @default(cuid())
+  fullName    String
+  phone       String            @unique
+  email       String?           @unique
+  password    String
+  isActive    Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  addresses   CustomerAddress[]
+}
+
+model CustomerAddress {
+  id            String    @id @default(cuid())
+  customerId    String
+  label         String?
+  fullName      String
+  phone         String
+  addressLine1  String
+  addressLine2  String?
+  landmark      String?
+  city          String
+  state         String
+  pincode       String
+  isDefault     Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  customer      Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+}
