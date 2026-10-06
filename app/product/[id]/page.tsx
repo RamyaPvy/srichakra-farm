@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import AddToCartButton from "../../components/AddToCartButton";
+import { resolveProductImageUrl } from "../../components/helpers";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -49,7 +50,11 @@ export default async function ProductDetailsPage({ params }: PageProps) {
   const unit = product.unit || "unit";
   const stock = Number(product.stockQty ?? 0);
   const price = Number(product.price ?? 0);
-  const imageUrl = product.imageUrl || "/categories/placeholder-product.png";
+  const imageUrl = resolveProductImageUrl(
+    product.name_en || product.name_hi || product.name_te,
+    product.category,
+    product.imageUrl || "/categories/placeholder-product.png"
+  );
 
   const title =
     fishType ||

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import AddToCartButton from "./AddToCartButton";
+import { resolveProductImageUrl } from "./helpers";
 
 type DbCategory = "FISH" | "SHEEP" | "VEGETABLES" | "RICE";
 type DbFishTab = "TENDER_SEEDS" | "BULK_LOTS" | "FAMILY_PACKS";
@@ -228,13 +229,15 @@ export default function ProductCard({
       ? bulkQtyToAdd
       : 1;
 
+  const resolvedImageUrl = resolveProductImageUrl(p.name_en, p.category, p.imageUrl ?? null);
+
   return (
     <div className="overflow-hidden rounded-[24px] border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
       <div className="relative aspect-[4/3] overflow-hidden bg-zinc-100">
-        {p.imageUrl ? (
+        {resolvedImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={p.imageUrl}
+            src={resolvedImageUrl}
             alt={p.name_en}
             className="h-full w-full object-cover transition duration-500 hover:scale-[1.03]"
           />
@@ -554,7 +557,7 @@ export default function ProductCard({
                 unitLabel: p.unitLabel,
                 price: mainPrice,
                 stockQty: safeNum(p.stockQty),
-                imageUrl: p.imageUrl ?? null,
+                imageUrl: resolvedImageUrl,
               }}
               qty={Math.max(1, Math.trunc(safeNum(qtyToAdd, 1)))}
               variant={{

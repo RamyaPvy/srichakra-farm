@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { resolveProductImageUrl } from "../components/helpers";
 import { useCart } from "../store/cart";
 
 function formatMoneyINR(amt: number): string {
@@ -61,9 +62,13 @@ export default function CartPage() {
               <div key={`${x.productId}::${x.variantKey}`} className="rounded-2xl border bg-white p-4">
                 <div className="flex items-start gap-4">
                   <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-gray-100">
-                    {x.imageUrl ? (
+                    {resolveProductImageUrl(x.nameSnapshot, null, x.imageUrl ?? null) ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={x.imageUrl} alt={x.nameSnapshot} className="h-full w-full object-cover" />
+                      <img
+                        src={resolveProductImageUrl(x.nameSnapshot, null, x.imageUrl ?? null)}
+                        alt={x.nameSnapshot}
+                        className="h-full w-full object-cover"
+                      />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center text-xs font-semibold text-gray-600">
                         No image

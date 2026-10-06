@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 type Product = {
@@ -61,9 +62,26 @@ function SectionCard({
 }
 
 export default function AdminInventoryPage() {
+  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    const checkAdminSession = async () => {
+      try {
+        const res = await fetch("/api/auth/admin/me", { cache: "no-store" });
+        if (!res.ok) {
+          router.replace("/admin/login?next=/admin");
+          return;
+        }
+      } catch {
+        router.replace("/admin/login?next=/admin");
+      }
+    };
+
+    checkAdminSession();
+  }, [router]);
 
   const fetchProducts = async () => {
     setLoading(true);

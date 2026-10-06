@@ -572,6 +572,39 @@ http://localhost:3000
 
 ---
 
+## Route Map & User Flows
+
+### Customer journey
+- Home: `/` → landing page with category tiles and farm highlights
+- Fish category: `/category/fish` → redirects to `/category/fish/tender-seeds`
+- Fish tabs: `/category/fish/tender-seeds`, `/category/fish/bulk-lots`, `/category/fish/family-packs`
+- Sheep category: `/category/sheep` → filters by `young-lambs`, `adult-sheep`, or `mutton`
+- Vegetables: `/category/vegetables`
+- Rice: `/category/rice`
+- Product details: `/product/[id]`
+- Cart: `/cart`
+- Checkout: `/checkout`
+- Login: `/login`
+- Registration: `/register`
+- Account: `/account` → addresses, orders, profile
+- Orders: `/orders`
+
+### Admin / owner flow
+- Admin login: `/admin/login`
+- Admin dashboard: `/admin`
+- Add inventory item: `/admin/products/new`
+- Product list: `/admin/products`
+- Order management: `/admin/orders`
+- Order detail: `/admin/orders/[id]`
+
+### Redirect behaviour
+- Customer registration and login both support the `next` query parameter for post-auth redirect.
+- If a customer is not logged in, protected pages redirect them to the login page.
+- The admin dashboard is protected with an admin session cookie and redirects unauthenticated users to `/admin/login`.
+- The farm owner/admin role shares the admin dashboard in the current MVP implementation.
+
+---
+
 ## Setup & Installation
 
 ### Prerequisites

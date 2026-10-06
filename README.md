@@ -1,36 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SriChakra Farm
 
-## Getting Started
+SriChakra Farm is a Next.js e-commerce app for farm products, with customer shopping, admin inventory management, and order tracking.
 
-First, run the development server:
+## Quick start
 
 ```bash
+npm install
+npx prisma db push
+npx prisma db seed
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open:
+- http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project routes
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Customer routes
+- `/` — home page
+- `/category/fish` — redirects to `/category/fish/tender-seeds`
+- `/category/sheep` — sheep and mutton listings
+- `/category/vegetables` — vegetables catalog
+- `/category/rice` — rice catalog
+- `/product/[id]` — product detail page
+- `/cart` — cart
+- `/checkout` — checkout flow
+- `/login` — customer login
+- `/register` — customer registration
+- `/account` — customer account dashboard
+- `/orders` — customer order list
 
-## Learn More
+### Admin routes
+- `/admin/login` — admin login
+- `/admin` — admin dashboard
+- `/admin/products` — product inventory list
+- `/admin/products/new` — add product
+- `/admin/orders` — order management
+- `/admin/orders/[id]` — order details
 
-To learn more about Next.js, take a look at the following resources:
+## Admin credentials
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The default seeded admin account is:
+- Email: `admin@srichakrafarm.com`
+- Password: `admin123`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Notes
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- The app uses Prisma with SQLite for local development.
+- Product images are matched automatically from the product name for vegetables, with category fallback images for all other categories.
+- Route authentication is handled through session cookies for both customer and admin flows.

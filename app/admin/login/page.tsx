@@ -4,14 +4,14 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 
-function LoginForm() {
+function AdminLoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const next = searchParams.get("next") || "/account";
+  const next = searchParams.get("next") || "/admin";
 
   const [form, setForm] = useState({
-    login: "",
+    email: "",
     password: "",
   });
 
@@ -22,21 +22,21 @@ function LoginForm() {
     e.preventDefault();
     setMsg(null);
 
-    if (!form.login.trim() || !form.password.trim()) {
-      setMsg("Please enter your phone number or email and password.");
+    if (!form.email.trim() || !form.password.trim()) {
+      setMsg("Please enter admin email and password.");
       return;
     }
 
     try {
       setLoading(true);
 
-      const res = await fetch("/api/auth/login", {
+      const res = await fetch("/api/auth/admin/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          login: form.login,
+          email: form.email,
           password: form.password,
         }),
       });
@@ -44,13 +44,13 @@ function LoginForm() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data?.error || "Login failed.");
+        throw new Error(data?.error || "Admin login failed.");
       }
 
       router.push(next);
       router.refresh();
     } catch (error: any) {
-      setMsg(error?.message || "Login failed.");
+      setMsg(error?.message || "Admin login failed.");
     } finally {
       setLoading(false);
     }
@@ -59,23 +59,21 @@ function LoginForm() {
   return (
     <div className="mx-auto max-w-md px-4 py-10">
       <div className="rounded-2xl border bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-bold">Login</h1>
+        <h1 className="text-2xl font-bold">Admin Login</h1>
         <p className="mt-2 text-sm text-zinc-600">
-          Welcome back. Sign in to continue shopping.
+          Access inventory and order management.
         </p>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium">
-              Phone Number or Email
-            </label>
+            <label className="mb-1 block text-sm font-medium">Email</label>
             <input
               className="w-full rounded-xl border px-3 py-2"
-              value={form.login}
+              value={form.email}
               onChange={(e) =>
-                setForm((prev) => ({ ...prev, login: e.target.value }))
+                setForm((prev) => ({ ...prev, email: e.target.value }))
               }
-              placeholder="Enter phone number or email"
+              placeholder="admin@srichakrafarm.com"
             />
           </div>
 
@@ -88,7 +86,7 @@ function LoginForm() {
               onChange={(e) =>
                 setForm((prev) => ({ ...prev, password: e.target.value }))
               }
-              placeholder="Enter your password"
+              placeholder="Enter admin password"
             />
           </div>
 
@@ -103,17 +101,14 @@ function LoginForm() {
             disabled={loading}
             className="w-full rounded-xl bg-black px-4 py-2 font-semibold text-white disabled:opacity-50"
           >
-            {loading ? "Logging in..." : "Login"}
+            {loading ? "Logging in..." : "Login to Admin"}
           </button>
         </form>
 
         <p className="mt-4 text-sm text-zinc-600">
-          New customer?{" "}
-          <Link
-            href={`/register?next=${encodeURIComponent(next)}`}
-            className="font-medium text-black underline"
-          >
-            Create an account
+          Need customer login?{" "}
+          <Link href={`/login?next=${encodeURIComponent(next)}`} className="font-medium text-black underline">
+            Go to customer login
           </Link>
         </p>
       </div>
@@ -121,10 +116,10 @@ function LoginForm() {
   );
 }
 
-export default function LoginPage() {
+export default function AdminLoginPage() {
   return (
     <Suspense fallback={<div className="p-6 text-center">Loading...</div>}>
-      <LoginForm />
+      <AdminLoginForm />
     </Suspense>
   );
 }
