@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 
 async function updateOrderStatus(formData: FormData) {
@@ -89,9 +90,11 @@ export default async function AdminOrdersPage({
 }) {
   const sp = await searchParams;
   const q = String(sp?.q || "").trim();
-  const selectedStatus = String(sp?.status || "ALL").toUpperCase();
+  const requestedStatus = String(sp?.status || "ALL").toUpperCase();
+  const selectedStatus =
+    STATUS_OPTIONS.find((status) => status === requestedStatus) ?? "ALL";
 
-  const whereClause: any = {};
+  const whereClause: Prisma.OrderWhereInput = {};
 
   if (selectedStatus !== "ALL") {
     whereClause.status = selectedStatus;

@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import AddToCartButton from "../../components/AddToCartButton";
-import { resolveProductImageUrl } from "../../components/helpers";
+import { asRecord, resolveProductImageUrl } from "../../components/helpers";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -34,42 +34,37 @@ export default async function ProductDetailsPage({ params }: PageProps) {
     notFound();
   }
 
-  const product = rawProduct as any;
-
-  if (product.isActive === false) {
+  if (!rawProduct.isActive) {
     notFound();
   }
 
-  const category = prettyText(String(product.category || ""));
-  const fishTab = prettyText(product.fishTab || "");
-  const fishType = prettyText(product.fishType || "");
-  const sheepType = prettyText(product.sheepType || "");
-  const vegetableType = prettyText(product.vegetableType || "");
-  const riceType = prettyText(product.riceType || "");
-
-  const unit = product.unit || "unit";
-  const stock = Number(product.stockQty ?? 0);
-  const price = Number(product.price ?? 0);
+  const metadata = asRecord(rawProduct.metaJson);
+  const category = prettyText(rawProduct.category);
+  const fishTab = prettyText(rawProduct.fishTab);
+  const fishType = prettyText(
+    typeof metadata.fishType === "string" ? metadata.fishType : null
+  );
+  const sheepType = prettyText(
+    typeof metadata.kind === "string" ? metadata.kind : null
+  );
+  const unit = rawProduct.unitLabel || "unit";
+  const stock = rawProduct.stockQty;
+  const price = rawProduct.price;
   const imageUrl = resolveProductImageUrl(
-    product.name_en || product.name_hi || product.name_te,
-    product.category,
-    product.imageUrl || "/categories/placeholder-product.png"
+    rawProduct.name_en,
+    rawProduct.category,
+    rawProduct.imageUrl || "/categories/placeholder-product.png"
   );
 
-  const title =
-    fishType ||
-    sheepType ||
-    vegetableType ||
-    riceType ||
-    prettyText(product.category || "") ||
-    "Product";
+  const title = rawProduct.name_en || "Product";
 
   const variantBits = [
-    product.sizeLabel,
-    product.variantLabel,
-    product.serviceType,
-    product.weightRange,
-  ].filter(Boolean);
+    metadata.sizeLabel,
+    metadata.variantLabel,
+    metadata.serviceType,
+    metadata.countPerPack != null ? `${String(metadata.countPerPack)} per pack` : null,
+    metadata.minOrderKg != null ? `Minimum ${String(metadata.minOrderKg)} kg` : null,
+  ].filter((value): value is string => typeof value === "string" && value.length > 0);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -79,7 +74,7 @@ export default async function ProductDetailsPage({ params }: PageProps) {
         </Link>
         <span className="mx-2 text-zinc-400">/</span>
         <Link
-          href={`/category/${String(product.category || "").toLowerCase()}`}
+          href={`/category/${rawProduct.category.toLowerCase()}`}
           className="text-sm text-zinc-600 hover:underline"
         >
           {category}
@@ -97,6 +92,7 @@ export default async function ProductDetailsPage({ params }: PageProps) {
               fill
               className="object-cover"
               sizes="(max-width: 1024px) 100vw, 50vw"
+              priority
             />
           </div>
         </div>
@@ -142,19 +138,6 @@ export default async function ProductDetailsPage({ params }: PageProps) {
                 </p>
               ) : null}
 
-              {vegetableType ? (
-                <p>
-                  <span className="font-medium">Vegetable Type:</span>{" "}
-                  {vegetableType}
-                </p>
-              ) : null}
-
-              {riceType ? (
-                <p>
-                  <span className="font-medium">Rice Type:</span> {riceType}
-                </p>
-              ) : null}
-
               <p>
                 <span className="font-medium">Stock:</span>{" "}
                 {stock > 0 ? `${stock} available` : "Out of stock"}
@@ -162,7 +145,7 @@ export default async function ProductDetailsPage({ params }: PageProps) {
             </div>
 
             <div className="mt-5">
-              <AddToCartButton product={product} />
+              <AddToCartButton product={rawProduct} />
             </div>
           </div>
 

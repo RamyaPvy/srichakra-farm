@@ -1,5 +1,17 @@
 import type { Lang } from "../providers/LanguageProvider";
 
+const EMPTY_RECORD: Record<string, unknown> = {};
+
+export function asRecord(value: unknown): Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : EMPTY_RECORD;
+}
+
+export function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
 const CATEGORY_IMAGE_FALLBACKS: Record<string, string> = {
   FISH: "/categories/fish.jpg",
   SHEEP: "/categories/sheep.jpg",

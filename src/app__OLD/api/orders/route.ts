@@ -5,37 +5,44 @@ function pad(num: number, size = 4) {
   return String(num).padStart(size, "0");
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function toText(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
+function toNullableText(value: unknown): string | null {
+  const text = toText(value).trim();
+  return text || null;
+}
+
+function toNumber(value: unknown, fallback = 0): number {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const requestBody: unknown = await req.json();
+    if (!isRecord(requestBody)) {
+      return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    }
 
-    const {
-      customerName,
-      phone,
-      email,
-      language = "en",
-      deliveryType = "DELIVERY",
+    const customerName = toText(requestBody.customerName).trim();
+    const phone = toText(requestBody.phone).trim();
+    const items = Array.isArray(requestBody.items)
+      ? requestBody.items.filter(isRecord)
+      : [];
 
-      addressLine1,
-      addressLine2,
-      landmark,
-      city,
-      state,
-      pincode,
-      mapLink,
-
-      preferredSlot,
-      notes,
-
-      paymentMethod = "COD",
-      subtotal,
-      deliveryFee = 0,
-      totalAmount,
-
-      items,
-    } = body;
-
-    if (!customerName || !phone || !Array.isArray(items) || items.length === 0) {
+    if (
+      !customerName ||
+      !phone ||
+      items.length === 0 ||
+      items.length !== (Array.isArray(requestBody.items) ? requestBody.items.length : 0) ||
+      items.some((item) => !toText(item.productId))
+    ) {
       return NextResponse.json({ error: "Invalid request" }, { status: 400 });
     }
 
@@ -59,37 +66,37 @@ export async function POST(req: Request) {
 
         customerName,
         phone,
-        email: email || null,
-        language,
+        email: toNullableText(requestBody.email),
+        language: toText(requestBody.language) || "en",
 
-        deliveryType,
+        deliveryType: requestBody.deliveryType === "PICKUP" ? "PICKUP" : "DELIVERY",
 
-        addressLine1: addressLine1 || null,
-        addressLine2: addressLine2 || null,
-        landmark: landmark || null,
-        city: city || null,
-        state: state || null,
-        pincode: pincode || null,
-        mapLink: mapLink || null,
+        addressLine1: toNullableText(requestBody.addressLine1),
+        addressLine2: toNullableText(requestBody.addressLine2),
+        landmark: toNullableText(requestBody.landmark),
+        city: toNullableText(requestBody.city),
+        state: toNullableText(requestBody.state),
+        pincode: toNullableText(requestBody.pincode),
+        mapLink: toNullableText(requestBody.mapLink),
 
-        preferredSlot: preferredSlot || null,
-        notes: notes || null,
+        preferredSlot: toNullableText(requestBody.preferredSlot),
+        notes: toNullableText(requestBody.notes),
 
-        paymentMethod,
+        paymentMethod: "COD",
 
-        subtotal: Number(subtotal ?? 0),
-        deliveryFee: Number(deliveryFee ?? 0),
-        totalAmount: Number(totalAmount ?? 0),
+        subtotal: toNumber(requestBody.subtotal),
+        deliveryFee: toNumber(requestBody.deliveryFee),
+        totalAmount: toNumber(requestBody.totalAmount),
 
         items: {
-          create: items.map((x: any) => ({
-            productId: x.productId,
-            qty: Number(x.qty ?? 1),
-            priceEach: Number(x.priceEach ?? 0),
-            lineTotal: Number(x.lineTotal ?? 0),
-            nameSnapshot: String(x.nameSnapshot ?? ""),
-            unitSnapshot: String(x.unitSnapshot ?? ""),
-            imageUrl: x.imageUrl || null,
+          create: items.map((item) => ({
+            productId: toText(item.productId),
+            qty: toNumber(item.qty, 1),
+            priceEach: toNumber(item.priceEach),
+            lineTotal: toNumber(item.lineTotal),
+            nameSnapshot: toText(item.nameSnapshot),
+            unitSnapshot: toText(item.unitSnapshot),
+            imageUrl: toNullableText(item.imageUrl),
           })),
         },
       },
@@ -103,9 +110,9 @@ export async function POST(req: Request) {
       orderId: created.id,
       orderNumber: created.orderNumber,
     });
-  } catch (e: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { error: e?.message || "Server error" },
+      { error: error instanceof Error ? error.message : "Server error" },
       { status: 500 }
     );
   }

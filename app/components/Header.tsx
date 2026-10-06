@@ -11,7 +11,7 @@ export default function Header() {
   const { items } = useCart();
 
   const totalQty = Array.isArray(items)
-    ? items.reduce((sum: number, item: any) => sum + Number(item.qty || 0), 0)
+    ? items.reduce((sum, item) => sum + Number(item.qty || 0), 0)
     : 0;
 
   const { lang } = useLanguage();

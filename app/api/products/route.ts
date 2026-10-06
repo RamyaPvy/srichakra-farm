@@ -1,29 +1,36 @@
 import { NextResponse } from "next/server";
+import { Prisma, type Category, type FishTab } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 
 const toInt = (v: unknown, fallback: number): number => {
+  if (v == null || (typeof v === "string" && !v.trim())) return fallback;
   const n = Number(v);
   return Number.isFinite(n) ? Math.trunc(n) : fallback;
 };
 
 const toNum = (v: unknown, fallback: number): number => {
+  if (v == null || (typeof v === "string" && !v.trim())) return fallback;
   const n = Number(v);
   return Number.isFinite(n) ? n : fallback;
 };
 
 const toStr = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 
-const isValidCategory = (c: string): boolean =>
+const isValidCategory = (c: string): c is Category =>
   ["FISH", "SHEEP", "VEGETABLES", "RICE"].includes(c);
 
-const isValidFishTab = (t: string): boolean =>
+const isValidFishTab = (t: string): t is FishTab =>
   ["TENDER_SEEDS", "BULK_LOTS", "FAMILY_PACKS"].includes(t);
 
 const isValidSheepKind = (k: string): boolean =>
   ["YOUNG_LAMB", "ADULT_SHEEP", "MUTTON"].includes(k);
 
-function validateMeta(category: string, fishTab: string, metaJson: any) {
-  const m: any = metaJson ?? {};
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function validateMeta(category: string, fishTab: string, metaJson: unknown) {
+  const m = isRecord(metaJson) ? metaJson : {};
 
   if (category === "FISH") {
     if (!isValidFishTab(fishTab)) {
@@ -120,6 +127,14 @@ function validateMeta(category: string, fishTab: string, metaJson: any) {
   return null;
 }
 
+function toJsonInput(value: unknown): Prisma.InputJsonValue | typeof Prisma.DbNull {
+  return value == null ? Prisma.DbNull : (value as Prisma.InputJsonValue);
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Server error";
+}
+
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -129,7 +144,7 @@ export async function GET(req: Request) {
     const includeInactive = searchParams.get("includeInactive") === "1";
     const take = Math.min(toInt(searchParams.get("take"), 100), 500);
 
-    const where: any = {};
+    const where: Prisma.ProductWhereInput = {};
     if (!includeInactive) where.isActive = true;
 
     if (category) {
@@ -170,14 +185,15 @@ export async function GET(req: Request) {
     });
 
     return NextResponse.json({ products });
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message || "Server error" }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: errorMessage(error) }, { status: 500 });
   }
 }
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const parsedBody: unknown = await req.json();
+    const body = isRecord(parsedBody) ? parsedBody : {};
 
     const category = toStr(body.category);
     const fishTab = toStr(body.fishTab);
@@ -219,8 +235,8 @@ export async function POST(req: Request) {
 
     const created = await prisma.product.create({
       data: {
-        category: category as any,
-        fishTab: category === "FISH" ? (fishTab as any) : null,
+        category,
+        fishTab: category === "FISH" ? (fishTab as FishTab) : null,
         name_en,
         name_te,
         name_hi,
@@ -229,7 +245,7 @@ export async function POST(req: Request) {
         stockQty,
         imageUrl,
         isActive,
-        metaJson,
+        metaJson: toJsonInput(metaJson),
       },
       select: {
         id: true,
@@ -248,14 +264,15 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ product: created }, { status: 201 });
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message || "Server error" }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: errorMessage(error) }, { status: 500 });
   }
 }
 
 export async function PATCH(req: Request) {
   try {
-    const body = await req.json();
+    const parsedBody: unknown = await req.json();
+    const body = isRecord(parsedBody) ? parsedBody : {};
 
     const id = toStr(body.id);
     if (!id) {
@@ -276,7 +293,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
-    const data: any = {};
+    const data: Prisma.ProductUpdateInput = {};
 
     if (body.price !== undefined) {
       const nextPrice = toInt(body.price, 0);
@@ -318,7 +335,7 @@ export async function PATCH(req: Request) {
     let nextMetaJson = existing.metaJson ?? null;
     if (body.metaJson !== undefined) {
       nextMetaJson = body.metaJson ?? null;
-      data.metaJson = nextMetaJson;
+      data.metaJson = toJsonInput(nextMetaJson);
     }
 
     const metaError = validateMeta(existing.category, nextFishTab, nextMetaJson);
@@ -347,7 +364,7 @@ export async function PATCH(req: Request) {
     });
 
     return NextResponse.json({ product: updated });
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message || "Server error" }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: errorMessage(error) }, { status: 500 });
   }
 }

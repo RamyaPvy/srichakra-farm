@@ -9,7 +9,7 @@ const PROTECTED_ROUTES = [
   "/account/orders",
 ];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const session = request.cookies.get("scf_customer_session");
 
   const isProtected = PROTECTED_ROUTES.some((route) =>

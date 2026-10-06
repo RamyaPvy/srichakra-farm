@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { getErrorMessage } from "../../../components/helpers";
 
 type Category = "FISH" | "SHEEP" | "VEGETABLES" | "RICE";
 type FishTab = "TENDER_SEEDS" | "BULK_LOTS" | "FAMILY_PACKS";
@@ -18,6 +20,20 @@ type FishType =
   | "MIRROR_CARP";
 
 type BulkType = "POND_STOCK" | "MARKET_BULK";
+
+type ProductPayload = {
+  category: Category;
+  fishTab: FishTab | null;
+  name_en: string;
+  name_te: string | null;
+  name_hi: string | null;
+  unitLabel: string;
+  price: number;
+  stockQty: number;
+  imageUrl: string | null;
+  isActive: boolean;
+  metaJson: Record<string, unknown> | null;
+};
 
 const FISH_TYPES: FishType[] = [
   "ROHU",
@@ -55,6 +71,49 @@ function titleize(value: string) {
     .replaceAll("_", " ")
     .toLowerCase()
     .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function ServicePriceFields({
+  services,
+  prices,
+  prepMinutes,
+  onPriceChange,
+  onPrepChange,
+}: {
+  services: readonly string[];
+  prices: Record<string, string>;
+  prepMinutes: Record<string, string>;
+  onPriceChange: (service: string, value: string) => void;
+  onPrepChange: (service: string, value: string) => void;
+}) {
+  return (
+    <div className="grid gap-4 sm:grid-cols-2">
+      {services.map((service) => (
+        <div key={service} className="grid grid-cols-2 gap-3">
+          <label className="block text-sm font-medium text-zinc-700">
+            {titleize(service)} extra charge (₹)
+            <input
+              type="number"
+              min="0"
+              value={prices[service]}
+              onChange={(event) => onPriceChange(service, event.target.value)}
+              className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-green-500"
+            />
+          </label>
+          <label className="block text-sm font-medium text-zinc-700">
+            Prep time (minutes)
+            <input
+              type="number"
+              min="0"
+              value={prepMinutes[service]}
+              onChange={(event) => onPrepChange(service, event.target.value)}
+              className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-green-500"
+            />
+          </label>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export default function NewProductPage() {
@@ -199,7 +258,7 @@ export default function NewProductPage() {
       return;
     }
 
-    const payload: any = {
+    const payload: ProductPayload = {
       category,
       fishTab: category === "FISH" ? fishTab : null,
       name_en: finalName,
@@ -300,8 +359,8 @@ export default function NewProductPage() {
 
       setMsg("✅ Product created successfully.");
       router.push("/admin/products");
-    } catch (e: any) {
-      setMsg(`❌ ${e?.message || "Failed to create product"}`);
+    } catch (error: unknown) {
+      setMsg(`❌ ${getErrorMessage(error, "Failed to create product")}`);
     } finally {
       setSubmitting(false);
     }
@@ -488,7 +547,14 @@ export default function NewProductPage() {
 
           {imageUrl && (
             <div className="mt-4 flex items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
-              <img src={imageUrl} alt="preview" className="h-16 w-16 rounded-xl object-cover" />
+              <Image
+                src={imageUrl}
+                alt="Product image preview"
+                width={64}
+                height={64}
+                unoptimized
+                className="h-16 w-16 rounded-xl object-cover"
+              />
               <div className="text-xs text-zinc-600">
                 This image will be used for the product card and product detail page.
               </div>
@@ -616,40 +682,69 @@ export default function NewProductPage() {
           </div>
         )}
 
+        {category === "FISH" && fishTab === "FAMILY_PACKS" && (
+          <div className="rounded-2xl border bg-white p-4">
+            <div className="mb-3 text-sm font-bold text-zinc-900">Family pack services</div>
+            <label className="mb-4 block text-sm font-medium text-zinc-700">
+              Fish type
+              <select
+                value={fishType}
+                onChange={(event) => setFishType(event.target.value as FishType)}
+                className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-green-500"
+              >
+                {FISH_TYPES.map((type) => (
+                  <option key={type} value={type}>{titleize(type)}</option>
+                ))}
+              </select>
+            </label>
+            <ServicePriceFields
+              services={FAMILY_SERVICES}
+              prices={familyServicePrices}
+              prepMinutes={familyServicePrep}
+              onPriceChange={updateFamilyPrice}
+              onPrepChange={updateFamilyPrep}
+            />
+          </div>
+        )}
+
         {category === "SHEEP" && (
           <div className="rounded-2xl border bg-white p-4">
             <div className="mb-3 text-sm font-bold text-zinc-900">Sheep details</div>
             <div className="grid gap-4 md:grid-cols-2">
-              <label className="block text-sm font-medium text-zinc-700">
-                Sheep ID
-                <input
-                  value={sheepId}
-                  onChange={(e) => setSheepId(e.target.value)}
-                  className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-green-500"
-                />
-              </label>
+              {sheepKind !== "MUTTON" && (
+                <>
+                  <label className="block text-sm font-medium text-zinc-700">
+                    Sheep ID
+                    <input
+                      value={sheepId}
+                      onChange={(e) => setSheepId(e.target.value)}
+                      className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-green-500"
+                    />
+                  </label>
 
-              <label className="block text-sm font-medium text-zinc-700">
-                Age (months)
-                <input
-                  type="number"
-                  min="0"
-                  value={ageMonths}
-                  onChange={(e) => setAgeMonths(e.target.value)}
-                  className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-green-500"
-                />
-              </label>
+                  <label className="block text-sm font-medium text-zinc-700">
+                    Age (months)
+                    <input
+                      type="number"
+                      min="0"
+                      value={ageMonths}
+                      onChange={(e) => setAgeMonths(e.target.value)}
+                      className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-green-500"
+                    />
+                  </label>
 
-              <label className="block text-sm font-medium text-zinc-700">
-                Weight (kg)
-                <input
-                  type="number"
-                  min="0"
-                  value={weightKg}
-                  onChange={(e) => setWeightKg(e.target.value)}
-                  className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-green-500"
-                />
-              </label>
+                  <label className="block text-sm font-medium text-zinc-700">
+                    Weight (kg)
+                    <input
+                      type="number"
+                      min="0"
+                      value={weightKg}
+                      onChange={(e) => setWeightKg(e.target.value)}
+                      className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-green-500"
+                    />
+                  </label>
+                </>
+              )}
 
               <label className="block text-sm font-medium text-zinc-700">
                 WhatsApp number
@@ -660,16 +755,41 @@ export default function NewProductPage() {
                 />
               </label>
 
-              <label className="flex items-center gap-3 text-sm font-medium text-zinc-700 md:col-span-2">
-                <input
-                  type="checkbox"
-                  checked={videoCallAvailable}
-                  onChange={(e) => setVideoCallAvailable(e.target.checked)}
-                  className="h-4 w-4"
-                />
-                Video call available
-              </label>
+              {sheepKind !== "MUTTON" && (
+                <label className="flex items-center gap-3 text-sm font-medium text-zinc-700 md:col-span-2">
+                  <input
+                    type="checkbox"
+                    checked={videoCallAvailable}
+                    onChange={(e) => setVideoCallAvailable(e.target.checked)}
+                    className="h-4 w-4"
+                  />
+                  Video call available
+                </label>
+              )}
             </div>
+          </div>
+        )}
+
+        {category === "SHEEP" && sheepKind === "MUTTON" && (
+          <div className="rounded-2xl border bg-white p-4">
+            <div className="mb-3 text-sm font-bold text-zinc-900">Mutton services</div>
+            <label className="mb-4 block text-sm font-medium text-zinc-700">
+              Minimum order (kg)
+              <input
+                type="number"
+                min="1"
+                value={muttonMinOrderKg}
+                onChange={(event) => setMuttonMinOrderKg(event.target.value)}
+                className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-green-500"
+              />
+            </label>
+            <ServicePriceFields
+              services={MUTTON_SERVICES}
+              prices={muttonServicePrices}
+              prepMinutes={muttonServicePrep}
+              onPriceChange={updateMuttonPrice}
+              onPrepChange={updateMuttonPrep}
+            />
           </div>
         )}
 

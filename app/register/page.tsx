@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
+import { getErrorMessage } from "../components/helpers";
 
 function RegisterForm() {
   const router = useRouter();
@@ -59,8 +60,8 @@ function RegisterForm() {
 
       router.push(next);
       router.refresh();
-    } catch (error: any) {
-      setMsg(error?.message || "Registration failed.");
+    } catch (error: unknown) {
+      setMsg(getErrorMessage(error, "Registration failed."));
     } finally {
       setLoading(false);
     }

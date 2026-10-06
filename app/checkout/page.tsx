@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "../store/cart";
+import { getErrorMessage } from "../components/helpers";
 
 type DeliveryType = "PICKUP" | "DELIVERY";
 
@@ -137,8 +138,8 @@ export default function CheckoutPage() {
 
       clear();
       router.push(`/order-success/${data.order.id}`);
-    } catch (e: any) {
-      setErr(e.message || "Something went wrong.");
+    } catch (error: unknown) {
+      setErr(getErrorMessage(error, "Something went wrong."));
     } finally {
       setLoading(false);
     }

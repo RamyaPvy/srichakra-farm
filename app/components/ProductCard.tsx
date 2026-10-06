@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import AddToCartButton from "./AddToCartButton";
-import { resolveProductImageUrl } from "./helpers";
+import { asRecord, resolveProductImageUrl } from "./helpers";
 
 type DbCategory = "FISH" | "SHEEP" | "VEGETABLES" | "RICE";
 type DbFishTab = "TENDER_SEEDS" | "BULK_LOTS" | "FAMILY_PACKS";
@@ -16,12 +16,18 @@ type ProductVM = {
   price: number;
   stockQty: number;
   imageUrl?: string | null;
-  metaJson?: any | null;
+  metaJson?: unknown;
 };
 
 function safeNum(value: unknown, fallback = 0): number {
   const n = Number(value);
   return Number.isFinite(n) ? n : fallback;
+}
+
+function numberRecord(value: unknown): Record<string, number> {
+  return Object.fromEntries(
+    Object.entries(asRecord(value)).map(([key, entry]) => [key, safeNum(entry)])
+  );
 }
 
 function formatINR(n: number): string {
@@ -75,7 +81,7 @@ export default function ProductCard({
   p: ProductVM;
   activeFishTab?: DbFishTab;
 }) {
-  const m = p.metaJson || {};
+  const m = asRecord(p.metaJson);
   const inStock = safeNum(p.stockQty) > 0;
 
   const fishType = m.fishType ? String(m.fishType) : null;
@@ -160,10 +166,8 @@ export default function ProductCard({
   }, [fishType, bulkType, minOrderKg, minFishKg, maxFishKg]);
 
   const services: string[] = Array.isArray(m.services) ? m.services.map(String) : [];
-  const extraCharges: Record<string, number> =
-    m.extraCharges && typeof m.extraCharges === "object" ? m.extraCharges : {};
-  const prepMinutes: Record<string, number> =
-    m.prepMinutes && typeof m.prepMinutes === "object" ? m.prepMinutes : {};
+  const extraCharges = useMemo(() => numberRecord(m.extraCharges), [m.extraCharges]);
+  const prepMinutes = useMemo(() => numberRecord(m.prepMinutes), [m.prepMinutes]);
 
   const [selectedService, setSelectedService] = useState<string | null>(null);
 
@@ -255,7 +259,7 @@ export default function ProductCard({
           {activeFishTab === "TENDER_SEEDS" && sizeLabel ? (
             <Badge>{sizeLabel}</Badge>
           ) : activeFishTab === "TENDER_SEEDS" && sizeInch ? (
-            <Badge>{sizeInch}"</Badge>
+            <Badge>{sizeInch}&quot;</Badge>
           ) : null}
           {activeFishTab === "BULK_LOTS" && bulkType ? (
             <Badge>{bulkType === "POND_STOCK" ? "Pond Stock" : "Market Bulk"}</Badge>

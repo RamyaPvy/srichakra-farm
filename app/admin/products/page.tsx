@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { asRecord, getErrorMessage } from "../../components/helpers";
 
 type Product = {
   id: string;
@@ -12,8 +13,10 @@ type Product = {
   price: number;
   stockQty: number;
   isActive: boolean;
-  metaJson?: any | null;
+  metaJson?: unknown;
 };
+
+type ProductPatch = Partial<Pick<Product, "price" | "stockQty" | "isActive">>;
 
 function formatMoneyINR(amt: number): string {
   if (!Number.isFinite(amt)) return "—";
@@ -73,8 +76,8 @@ export default function AdminProductsPage() {
       const res = await fetch("/api/products?includeInactive=1&take=300");
       const data = await res.json();
       setProducts(data.products || []);
-    } catch (e: any) {
-      setMsg(e?.message || "Failed to load products");
+    } catch (error: unknown) {
+      setMsg(getErrorMessage(error, "Failed to load products"));
     } finally {
       setLoading(false);
     }
@@ -106,7 +109,7 @@ export default function AdminProductsPage() {
     };
 
     for (const p of products.filter((x) => x.category === "SHEEP")) {
-      const kind = String((p.metaJson as any)?.kind || "");
+      const kind = String(asRecord(p.metaJson).kind || "");
       if (groups[kind]) groups[kind].push(p);
     }
 
@@ -141,7 +144,7 @@ export default function AdminProductsPage() {
     };
   }, [products]);
 
-  const patch = async (id: string, body: any) => {
+  const patch = async (id: string, body: ProductPatch) => {
     setMsg(null);
 
     const res = await fetch("/api/products", {
@@ -170,8 +173,8 @@ export default function AdminProductsPage() {
       setProducts((prev) =>
         prev.map((x) => (x.id === p.id ? { ...x, ...updated } : x))
       );
-    } catch (e: any) {
-      setMsg(`❌ ${e?.message || "Error"}`);
+    } catch (error: unknown) {
+      setMsg(`❌ ${getErrorMessage(error, "Error")}`);
     }
   };
 
@@ -182,8 +185,8 @@ export default function AdminProductsPage() {
       setProducts((prev) =>
         prev.map((x) => (x.id === p.id ? { ...x, ...updated } : x))
       );
-    } catch (e: any) {
-      setMsg(`❌ ${e?.message || "Error"}`);
+    } catch (error: unknown) {
+      setMsg(`❌ ${getErrorMessage(error, "Error")}`);
     }
   };
 
@@ -215,7 +218,7 @@ export default function AdminProductsPage() {
               const stockStatus = getStockStatus(p.stockQty);
               const sheepKind =
                 p.category === "SHEEP"
-                  ? String((p.metaJson as any)?.kind || "")
+                  ? String(asRecord(p.metaJson).kind || "")
                   : "";
 
               return (

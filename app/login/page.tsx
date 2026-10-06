@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
+import { getErrorMessage } from "../components/helpers";
 
 function LoginForm() {
   const router = useRouter();
@@ -49,8 +50,8 @@ function LoginForm() {
 
       router.push(next);
       router.refresh();
-    } catch (error: any) {
-      setMsg(error?.message || "Login failed.");
+    } catch (error: unknown) {
+      setMsg(getErrorMessage(error, "Login failed."));
     } finally {
       setLoading(false);
     }
