@@ -107,6 +107,14 @@ export default function NewProductPage() {
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
+  const vegetableAssetOptions = [
+    { label: "Tomato", value: "/products/vegetables/tomato.svg" },
+    { label: "Green Chilli", value: "/products/vegetables/green-chilli.svg" },
+    { label: "Spinach", value: "/products/vegetables/spinach.svg" },
+    { label: "Cucumber", value: "/products/vegetables/cucumber.svg" },
+    { label: "Onion", value: "/products/vegetables/onion.svg" },
+  ];
+
   const effectiveUnitLabel = useMemo(() => {
     if (category === "FISH") {
       if (fishTab === "TENDER_SEEDS") return "pack";
@@ -320,7 +328,360 @@ export default function NewProductPage() {
       {msg && <div className="mt-4 rounded-xl border px-4 py-3 text-sm">{msg}</div>}
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-6">
-        {/* Keep the remaining JSX exactly as your current form structure */}
+        <div className="rounded-2xl border bg-white p-4">
+          <div className="mb-4 text-sm font-bold text-zinc-900">Basic product details</div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="block text-sm font-medium text-zinc-700">
+              Category
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value as Category)}
+                className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-green-500"
+              >
+                <option value="FISH">Fish</option>
+                <option value="SHEEP">Sheep</option>
+                <option value="VEGETABLES">Vegetables</option>
+                <option value="RICE">Rice</option>
+              </select>
+            </label>
+
+            {category === "FISH" && (
+              <label className="block text-sm font-medium text-zinc-700">
+                Fish tab
+                <select
+                  value={fishTab}
+                  onChange={(e) => setFishTab(e.target.value as FishTab)}
+                  className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-green-500"
+                >
+                  <option value="TENDER_SEEDS">Tender Seeds</option>
+                  <option value="BULK_LOTS">Bulk Lots</option>
+                  <option value="FAMILY_PACKS">Family Packs</option>
+                </select>
+              </label>
+            )}
+
+            {category === "SHEEP" && (
+              <label className="block text-sm font-medium text-zinc-700">
+                Sheep kind
+                <select
+                  value={sheepKind}
+                  onChange={(e) => setSheepKind(e.target.value as SheepKind)}
+                  className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-green-500"
+                >
+                  <option value="YOUNG_LAMB">Young Lamb</option>
+                  <option value="ADULT_SHEEP">Adult Sheep</option>
+                  <option value="MUTTON">Mutton</option>
+                </select>
+              </label>
+            )}
+
+            <label className="block text-sm font-medium text-zinc-700 md:col-span-2">
+              Product name
+              <input
+                value={nameEn}
+                onChange={(e) => setNameEn(e.target.value)}
+                placeholder={suggestedName || "Tomatoes - Fresh"}
+                className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-green-500"
+              />
+            </label>
+
+            <label className="block text-sm font-medium text-zinc-700">
+              Telugu name
+              <input
+                value={nameTe}
+                onChange={(e) => setNameTe(e.target.value)}
+                className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-green-500"
+              />
+            </label>
+
+            <label className="block text-sm font-medium text-zinc-700">
+              Hindi name
+              <input
+                value={nameHi}
+                onChange={(e) => setNameHi(e.target.value)}
+                className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-green-500"
+              />
+            </label>
+
+            <label className="block text-sm font-medium text-zinc-700">
+              Unit label
+              <input
+                value={unitLabel}
+                onChange={(e) => setUnitLabel(e.target.value)}
+                className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-green-500"
+              />
+            </label>
+
+            <label className="block text-sm font-medium text-zinc-700">
+              Price (₹)
+              <input
+                type="number"
+                min="0"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-green-500"
+              />
+            </label>
+
+            <label className="block text-sm font-medium text-zinc-700">
+              Stock quantity
+              <input
+                type="number"
+                min="0"
+                value={stockQty}
+                onChange={(e) => setStockQty(e.target.value)}
+                className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-green-500"
+              />
+            </label>
+
+            <label className="flex items-center gap-3 text-sm font-medium text-zinc-700 md:col-span-2">
+              <input
+                type="checkbox"
+                checked={isActive}
+                onChange={(e) => setIsActive(e.target.checked)}
+                className="h-4 w-4"
+              />
+              Publish this product on customer pages
+            </label>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border bg-white p-4">
+          <div className="mb-3 text-sm font-bold text-zinc-900">Image setup</div>
+
+          {category === "VEGETABLES" && (
+            <div className="mb-4">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">
+                Local farm asset presets
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {vegetableAssetOptions.map((option) => {
+                  const active = imageUrl === option.value;
+                  return (
+                    <button
+                      key={option.label}
+                      type="button"
+                      onClick={() => setImageUrl(option.value)}
+                      className={
+                        active
+                          ? "rounded-full bg-green-800 px-3 py-1.5 text-xs font-bold text-white"
+                          : "rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-bold text-zinc-700"
+                      }
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <label className="block text-sm font-medium text-zinc-700">
+            Image URL / local asset path
+            <input
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder={category === "VEGETABLES" ? "/products/vegetables/tomato.svg" : "https://example.com/image.jpg"}
+              className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-green-500"
+            />
+          </label>
+
+          {imageUrl && (
+            <div className="mt-4 flex items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+              <img src={imageUrl} alt="preview" className="h-16 w-16 rounded-xl object-cover" />
+              <div className="text-xs text-zinc-600">
+                This image will be used for the product card and product detail page.
+              </div>
+            </div>
+          )}
+        </div>
+
+        {category === "FISH" && fishTab === "TENDER_SEEDS" && (
+          <div className="rounded-2xl border bg-white p-4">
+            <div className="mb-3 text-sm font-bold text-zinc-900">Tender seed details</div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="block text-sm font-medium text-zinc-700">
+                Fish type
+                <select
+                  value={fishType}
+                  onChange={(e) => setFishType(e.target.value as FishType)}
+                  className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-green-500"
+                >
+                  {FISH_TYPES.map((t) => (
+                    <option key={t} value={t}>{titleize(t)}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="block text-sm font-medium text-zinc-700">
+                Size label
+                <select
+                  value={sizeLabel}
+                  onChange={(e) => setSizeLabel(e.target.value as TenderSeedSize)}
+                  className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-green-500"
+                >
+                  {TENDER_SEED_SIZES.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="block text-sm font-medium text-zinc-700">
+                Count per pack
+                <input
+                  type="number"
+                  min="1"
+                  value={countPerPack}
+                  onChange={(e) => setCountPerPack(e.target.value)}
+                  className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-green-500"
+                />
+              </label>
+
+              <label className="block text-sm font-medium text-zinc-700">
+                Per fish price (₹)
+                <input
+                  type="number"
+                  min="0"
+                  value={perFishPrice}
+                  onChange={(e) => setPerFishPrice(e.target.value)}
+                  className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-green-500"
+                />
+              </label>
+            </div>
+          </div>
+        )}
+
+        {category === "FISH" && fishTab === "BULK_LOTS" && (
+          <div className="rounded-2xl border bg-white p-4">
+            <div className="mb-3 text-sm font-bold text-zinc-900">Bulk lot details</div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="block text-sm font-medium text-zinc-700">
+                Fish type
+                <select
+                  value={fishType}
+                  onChange={(e) => setFishType(e.target.value as FishType)}
+                  className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-green-500"
+                >
+                  {FISH_TYPES.map((t) => (
+                    <option key={t} value={t}>{titleize(t)}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="block text-sm font-medium text-zinc-700">
+                Bulk type
+                <select
+                  value={bulkType}
+                  onChange={(e) => setBulkType(e.target.value as BulkType)}
+                  className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-green-500"
+                >
+                  <option value="POND_STOCK">Pond Stock</option>
+                  <option value="MARKET_BULK">Market Bulk</option>
+                </select>
+              </label>
+
+              <label className="block text-sm font-medium text-zinc-700">
+                Minimum order kg
+                <input
+                  type="number"
+                  min="1"
+                  value={minOrderKg}
+                  onChange={(e) => setMinOrderKg(e.target.value)}
+                  className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-green-500"
+                />
+              </label>
+
+              <label className="block text-sm font-medium text-zinc-700">
+                Minimum fish kg
+                <input
+                  type="number"
+                  min="0"
+                  value={minFishKg}
+                  onChange={(e) => setMinFishKg(e.target.value)}
+                  className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-green-500"
+                />
+              </label>
+
+              <label className="block text-sm font-medium text-zinc-700 md:col-span-2">
+                Maximum fish kg
+                <input
+                  type="number"
+                  min="0"
+                  value={maxFishKg}
+                  onChange={(e) => setMaxFishKg(e.target.value)}
+                  className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-green-500"
+                />
+              </label>
+            </div>
+          </div>
+        )}
+
+        {category === "SHEEP" && (
+          <div className="rounded-2xl border bg-white p-4">
+            <div className="mb-3 text-sm font-bold text-zinc-900">Sheep details</div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="block text-sm font-medium text-zinc-700">
+                Sheep ID
+                <input
+                  value={sheepId}
+                  onChange={(e) => setSheepId(e.target.value)}
+                  className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-green-500"
+                />
+              </label>
+
+              <label className="block text-sm font-medium text-zinc-700">
+                Age (months)
+                <input
+                  type="number"
+                  min="0"
+                  value={ageMonths}
+                  onChange={(e) => setAgeMonths(e.target.value)}
+                  className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-green-500"
+                />
+              </label>
+
+              <label className="block text-sm font-medium text-zinc-700">
+                Weight (kg)
+                <input
+                  type="number"
+                  min="0"
+                  value={weightKg}
+                  onChange={(e) => setWeightKg(e.target.value)}
+                  className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-green-500"
+                />
+              </label>
+
+              <label className="block text-sm font-medium text-zinc-700">
+                WhatsApp number
+                <input
+                  value={whatsappNumber}
+                  onChange={(e) => setWhatsappNumber(e.target.value)}
+                  className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-green-500"
+                />
+              </label>
+
+              <label className="flex items-center gap-3 text-sm font-medium text-zinc-700 md:col-span-2">
+                <input
+                  type="checkbox"
+                  checked={videoCallAvailable}
+                  onChange={(e) => setVideoCallAvailable(e.target.checked)}
+                  className="h-4 w-4"
+                />
+                Video call available
+              </label>
+            </div>
+          </div>
+        )}
+
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={submitting}
+            className="rounded-xl bg-green-800 px-5 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-zinc-300"
+          >
+            {submitting ? "Saving..." : "Create Product"}
+          </button>
+        </div>
       </form>
     </div>
   );

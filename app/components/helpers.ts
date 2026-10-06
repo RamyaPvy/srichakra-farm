@@ -8,15 +8,15 @@ const CATEGORY_IMAGE_FALLBACKS: Record<string, string> = {
 };
 
 const VEGETABLE_IMAGE_MAP: Record<string, string> = {
-  tomato: "https://images.unsplash.com/photo-1546094096-0df4bcaaa337?auto=format&fit=crop&w=1200&q=80",
-  tomatoes: "https://images.unsplash.com/photo-1546094096-0df4bcaaa337?auto=format&fit=crop&w=1200&q=80",
-  "green chilli": "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=1200&q=80",
-  "green chillies": "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?auto=format&fit=crop&w=1200&q=80",
-  spinach: "https://images.unsplash.com/photo-1576045057995-568f588f82fb?auto=format&fit=crop&w=1200&q=80",
-  cucumber: "https://images.unsplash.com/photo-1601493700631-2b16ec4b4716?auto=format&fit=crop&w=1200&q=80",
-  onion: "https://images.unsplash.com/photo-1518977956812-cd3dbadaaf31?auto=format&fit=crop&w=1200&q=80",
-  "onion white": "https://images.unsplash.com/photo-1518977956812-cd3dbadaaf31?auto=format&fit=crop&w=1200&q=80",
-  "white onion": "https://images.unsplash.com/photo-1518977956812-cd3dbadaaf31?auto=format&fit=crop&w=1200&q=80",
+  tomato: "/products/vegetables/tomato.svg",
+  tomatoes: "/products/vegetables/tomato.svg",
+  "green chilli": "/products/vegetables/green-chilli.svg",
+  "green chillies": "/products/vegetables/green-chilli.svg",
+  spinach: "/products/vegetables/spinach.svg",
+  cucumber: "/products/vegetables/cucumber.svg",
+  onion: "/products/vegetables/onion.svg",
+  "onion white": "/products/vegetables/onion.svg",
+  "white onion": "/products/vegetables/onion.svg",
 };
 
 export function resolveProductImageUrl(
