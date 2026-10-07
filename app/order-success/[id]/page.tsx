@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import OrderStatusTimeline from "../../components/order/OrderStatusTimeline";
+import { getCurrentAdmin, getCurrentCustomer } from "@/lib/auth";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -71,6 +73,9 @@ type OrderView = {
 
 export default async function OrderSuccessPage({ params }: PageProps) {
   const { id } = await params;
+  const customer = await getCurrentCustomer();
+  const admin = customer ? null : await getCurrentAdmin();
+  if (!customer && !admin) redirect(`/login?next=${encodeURIComponent(`/order-success/${id}`)}`);
 
   const rawOrder = await prisma.order.findUnique({
     where: { id },
@@ -80,6 +85,14 @@ export default async function OrderSuccessPage({ params }: PageProps) {
   });
 
   if (!rawOrder) {
+    notFound();
+  }
+
+  if (
+    customer &&
+    rawOrder.customerId !== customer.id &&
+    !(rawOrder.customerId === null && rawOrder.phone.replace(/\D/g, "") === customer.phone.replace(/\D/g, ""))
+  ) {
     notFound();
   }
 

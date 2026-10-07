@@ -68,12 +68,12 @@ export default function AddToCartButton({
         onClick={handleAdd}
         className={
           disabled
-            ? "flex w-full cursor-not-allowed items-center justify-center rounded-2xl bg-zinc-300 px-4 py-3 text-sm font-bold text-white shadow-sm"
-            : "flex w-full items-center justify-center rounded-2xl bg-green-800 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-green-900 active:scale-[0.99]"
+            ? "flex min-h-11 w-full cursor-not-allowed items-center justify-center rounded-xl bg-zinc-300 px-2 py-3 text-xs font-bold text-white shadow-sm sm:px-4 sm:text-sm"
+            : "flex min-h-11 w-full items-center justify-center rounded-xl bg-green-800 px-2 py-3 text-xs font-bold text-white shadow-sm transition hover:bg-green-900 active:scale-[0.99] sm:px-4 sm:text-sm"
         }
       >
-        <span className="inline-flex items-center gap-2">
-          <span>{disabled ? "⚠️" : "🛒"}</span>
+          <span className="inline-flex items-center gap-1.5 whitespace-nowrap sm:gap-2">
+          <span className="hidden sm:inline">{disabled ? "⚠️" : "🛒"}</span>
           <span>{disabled ? "Select option first" : "Add to Cart"}</span>
         </span>
       </button>

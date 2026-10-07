@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getErrorMessage } from "../../../components/helpers";
+import CloudImagePicker from "../CloudImagePicker";
 
 type Category = "FISH" | "SHEEP" | "VEGETABLES" | "RICE";
 type FishTab = "TENDER_SEEDS" | "BULK_LOTS" | "FAMILY_PACKS";
@@ -167,11 +168,11 @@ export default function NewProductPage() {
   const [msg, setMsg] = useState<string | null>(null);
 
   const vegetableAssetOptions = [
-    { label: "Tomato", value: "/products/vegetables/tomato.svg" },
-    { label: "Green Chilli", value: "/products/vegetables/green-chilli.svg" },
-    { label: "Spinach", value: "/products/vegetables/spinach.svg" },
-    { label: "Cucumber", value: "/products/vegetables/cucumber.svg" },
-    { label: "Onion", value: "/products/vegetables/onion.svg" },
+    { label: "Tomato", value: "https://images.unsplash.com/photo-1546094096-0df4bcaaa337?auto=format&fit=crop&w=1200&q=85" },
+    { label: "Green Chilli", value: "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fe/Very_small_round_shaped_green_chili_peppers_from_West_Bengal%2C_India%2C_photographed_on_December_22%2C_2023.jpg/1280px-Very_small_round_shaped_green_chili_peppers_from_West_Bengal%2C_India%2C_photographed_on_December_22%2C_2023.jpg" },
+    { label: "Spinach", value: "https://images.unsplash.com/photo-1576045057995-568f588f82fb?auto=format&fit=crop&w=1200&q=85" },
+    { label: "Cucumber", value: "https://images.unsplash.com/photo-1449300079323-02e209d9d3a6?auto=format&fit=crop&w=1200&q=85" },
+    { label: "Onion", value: "https://images.unsplash.com/photo-1518977956812-cd3dbadaaf31?auto=format&fit=crop&w=1200&q=85" },
   ];
 
   const effectiveUnitLabel = useMemo(() => {
@@ -507,11 +508,12 @@ export default function NewProductPage() {
 
         <div className="rounded-2xl border bg-white p-4">
           <div className="mb-3 text-sm font-bold text-zinc-900">Image setup</div>
+          <CloudImagePicker value={imageUrl} onUpload={setImageUrl} />
 
           {category === "VEGETABLES" && (
             <div className="mb-4">
               <div className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-zinc-500">
-                Local farm asset presets
+                Suggested product photos
               </div>
               <div className="flex flex-wrap gap-2">
                 {vegetableAssetOptions.map((option) => {

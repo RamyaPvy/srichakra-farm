@@ -5,7 +5,7 @@ SriChakra Farm is a Next.js e-commerce app for farm products, with customer shop
 ## Quick start
 
 ```bash
-npm install
+npm ci
 npx prisma db push
 npx prisma db seed
 npm run dev
@@ -13,6 +13,20 @@ npm run dev
 
 Then open:
 - http://localhost:3000
+
+## Reopen and sync
+
+After a break, open this folder in VS Code and run `npm ci` if dependencies need restoring. VS Code is configured to offer starting the local app when this workspace opens. The repository also enables Git fetch in the background and pushes commits made through VS Code automatically. Saving a file is not a Git commit, so review and commit your changes in Source Control; the push happens after that commit.
+
+`http://localhost:3000` is a development address on this computer and is available only while the dev server is running. An always-available customer URL requires deploying the app and migrating the local SQLite database to a managed PostgreSQL database, with product photos in persistent hosted storage. The repository does not yet have hosting credentials or a production database configured, so no public deployment has been created.
+
+Copy `.env.example` to `.env` for local configuration. Seeding is now non-destructive: it adds starter products only to an empty catalog and never deletes orders or resets an existing admin password. For production, set a strong `ADMIN_INITIAL_PASSWORD` before the first seed. To enable camera/gallery product photos, create a Cloudinary unsigned upload preset restricted to images with a 10 MB maximum, then set `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` and `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET`. Uploaded product images are stored by Cloudinary and their URLs are saved with inventory records.
+
+## Owner and admin access
+
+Owners sign in at `/admin/login`; inventory and order management are under `/admin/products` and `/admin/orders`. These routes and inventory write APIs require an admin session. Customer profile, addresses, and orders are available after customer login at `/account`.
+
+The seed admin credentials are for local development only. Change the password before exposing any deployment publicly; never reuse the documented seed password in production.
 
 ## Project routes
 

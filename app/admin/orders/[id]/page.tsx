@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { getCurrentAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 type PageProps = {
@@ -18,6 +20,8 @@ const STATUS_OPTIONS = [
 
 async function updateOrderStatus(formData: FormData) {
   "use server";
+
+  if (!(await getCurrentAdmin())) redirect("/admin/login?next=/admin/orders");
 
   const orderId = String(formData.get("orderId") || "");
   const status = String(formData.get("status") || "");

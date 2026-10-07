@@ -10,8 +10,15 @@ type Customer = {
   email?: string | null;
 };
 
+type Admin = {
+  id: string;
+  email: string;
+  role: string;
+};
+
 export default function CustomerAccountMenu() {
   const [customer, setCustomer] = useState<Customer | null>(null);
+  const [admin, setAdmin] = useState<Admin | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,6 +33,14 @@ export default function CustomerAccountMenu() {
 
         if (!res.ok) {
           if (!ignore) setCustomer(null);
+          const adminResponse = await fetch("/api/auth/admin/me", {
+            method: "GET",
+            cache: "no-store",
+          });
+          if (adminResponse.ok) {
+            const adminData = await adminResponse.json();
+            if (!ignore) setAdmin(adminData?.admin ?? null);
+          }
           return;
         }
 
@@ -52,6 +67,33 @@ export default function CustomerAccountMenu() {
     return (
       <div className="flex items-center gap-2">
         <div className="h-10 w-24 rounded-xl border bg-zinc-100" />
+      </div>
+    );
+  }
+
+  if (admin) {
+    return (
+      <div className="flex items-center gap-2">
+        <Link
+          href="/admin/products"
+          className="rounded-xl border border-green-200 bg-white px-3 py-2 text-sm font-medium text-green-900 shadow-sm transition hover:border-green-300 hover:bg-green-50"
+        >
+          Owner Inventory
+        </Link>
+        <Link
+          href="/admin/orders"
+          className="hidden rounded-xl border border-green-200 bg-white px-3 py-2 text-sm font-medium text-green-900 shadow-sm transition hover:border-green-300 hover:bg-green-50 sm:inline-flex"
+        >
+          Manage Orders
+        </Link>
+        <form action="/api/auth/admin/logout" method="post">
+          <button
+            type="submit"
+            className="rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 shadow-sm transition hover:border-red-300 hover:bg-red-50"
+          >
+            Logout
+          </button>
+        </form>
       </div>
     );
   }

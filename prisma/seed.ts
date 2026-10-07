@@ -10,11 +10,16 @@ async function main() {
   });
 
   try {
-    const adminPassword = await bcrypt.hash("admin123", 10);
+    const initialAdminPassword = process.env.ADMIN_INITIAL_PASSWORD;
+    if (process.env.NODE_ENV === "production" && !initialAdminPassword) {
+      throw new Error("ADMIN_INITIAL_PASSWORD must be configured before production seeding.");
+    }
+
+    const adminPassword = await bcrypt.hash(initialAdminPassword || "admin123", 10);
 
     await prisma.adminUser.upsert({
       where: { email: "admin@srichakrafarm.com" },
-      update: { password: adminPassword },
+      update: {},
       create: {
         email: "admin@srichakrafarm.com",
         password: adminPassword,
@@ -22,9 +27,11 @@ async function main() {
       },
     });
 
-    await prisma.orderItem.deleteMany({});
-    await prisma.order.deleteMany({});
-    await prisma.product.deleteMany({});
+    const productCount = await prisma.product.count();
+    if (productCount > 0) {
+      console.log("Seed data already exists; keeping existing products, orders, and stock.");
+      return;
+    }
 
     await prisma.product.createMany({
       data: [

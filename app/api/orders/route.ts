@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getCurrentAdmin, getCurrentCustomer } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 type IncomingOrderItem = {
@@ -61,6 +62,12 @@ function generateOrderNumber() {
 
 export async function GET(req: NextRequest) {
   try {
+    const customer = await getCurrentCustomer();
+    const admin = customer ? null : await getCurrentAdmin();
+    if (!customer && !admin) {
+      return NextResponse.json({ error: "Not logged in." }, { status: 401 });
+    }
+
     const { searchParams } = new URL(req.url);
 
     const phoneRaw = String(searchParams.get("phone") || "").trim();
@@ -68,19 +75,22 @@ export async function GET(req: NextRequest) {
     const takeRaw = Number(searchParams.get("take") || 20);
     const take = Number.isFinite(takeRaw) ? Math.min(Math.max(Math.trunc(takeRaw), 1), 50) : 20;
 
-    if (!phoneRaw) {
+    const normalizedSearchPhone = normalizePhone(customer?.phone ?? phoneRaw);
+    if (!normalizedSearchPhone) {
       return NextResponse.json({ error: "Phone number is required" }, { status: 400 });
     }
+    if (customer && phoneRaw && normalizePhone(phoneRaw) !== normalizedSearchPhone) {
+      return NextResponse.json({ error: "You can only view your own orders." }, { status: 403 });
+    }
 
-    const normalizedSearchPhone = normalizePhone(phoneRaw);
+    const phoneConditions = customer
+      ? [{ customerId: customer.id }, { phone: normalizedSearchPhone }]
+      : [{ phone: normalizedSearchPhone }, { phone: phoneRaw }];
 
     const orders = await prisma.order.findMany({
       where: {
         ...(orderNumberRaw ? { orderNumber: orderNumberRaw } : {}),
-        OR: [
-          { phone: normalizedSearchPhone },
-          { phone: phoneRaw },
-        ],
+        OR: phoneConditions,
       },
       include: {
         items: true,
@@ -100,6 +110,11 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const customer = await getCurrentCustomer();
+    if (!customer) {
+      return NextResponse.json({ error: "Sign in before placing an order." }, { status: 401 });
+    }
+
     const body = (await req.json()) as CreateOrderBody;
 
     if (!body.customerName?.trim()) {
@@ -133,12 +148,16 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    if (!Array.isArray(body.items) || body.items.length > 100) {
+      return NextResponse.json({ error: "Invalid cart items." }, { status: 400 });
+    }
+
     const normalizedItems = body.items.map((item) => ({
       productId: String(item.productId),
-      qty: Math.max(1, Number(item.qty || 1)),
+      qty: Number(item.qty),
       variantKey: item.variantKey ? String(item.variantKey) : "base",
       variantLabel: item.variantLabel ? String(item.variantLabel) : null,
-      priceEach: Math.max(0, Number(item.priceEach || 0)),
+      priceEach: Number(item.priceEach),
       unitSnapshot: String(item.unitSnapshot || ""),
       nameSnapshot: String(item.nameSnapshot || ""),
       imageUrl: item.imageUrl ? String(item.imageUrl) : null,
@@ -171,6 +190,56 @@ export async function POST(req: NextRequest) {
     }
 
     const productMap = new Map(products.map((p) => [p.id, p]));
+
+    for (const item of normalizedItems) {
+      const product = productMap.get(item.productId);
+      if (!product) continue;
+
+      if (!Number.isSafeInteger(item.qty) || item.qty <= 0 || !Number.isFinite(item.priceEach)) {
+        return NextResponse.json({ error: "Cart contains invalid quantity or price." }, { status: 400 });
+      }
+
+      const meta = product.metaJson && typeof product.metaJson === "object" && !Array.isArray(product.metaJson)
+        ? product.metaJson as Record<string, unknown>
+        : {};
+      let expectedPrice = product.price;
+      const variantParts = item.variantKey.split(":");
+
+      if (product.category === "FISH" && product.fishTab === "TENDER_SEEDS") {
+        const packPrice = Number(meta.packPriceExact);
+        const perFishPrice = Number(meta.perFishPrice);
+        const countPerPack = Number(meta.countPerPack);
+        expectedPrice = Number.isFinite(packPrice) && packPrice > 0
+          ? packPrice
+          : Number.isFinite(perFishPrice) && Number.isFinite(countPerPack)
+            ? perFishPrice * countPerPack
+            : product.price;
+      } else if (
+        (product.category === "FISH" && product.fishTab === "FAMILY_PACKS") ||
+        (product.category === "SHEEP" && meta.kind === "MUTTON")
+      ) {
+        const service = product.category === "FISH" ? variantParts[2] : variantParts[2];
+        const charges = meta.extraCharges && typeof meta.extraCharges === "object" && !Array.isArray(meta.extraCharges)
+          ? meta.extraCharges as Record<string, unknown>
+          : {};
+        if (!service || !(service in charges)) {
+          return NextResponse.json({ error: "Select a valid product service before ordering." }, { status: 400 });
+        }
+        const extraCharge = Number(charges[service]);
+        if (!Number.isFinite(extraCharge) || extraCharge < 0) {
+          return NextResponse.json({ error: "Product service pricing is invalid." }, { status: 400 });
+        }
+        expectedPrice += extraCharge;
+      }
+
+      if (Math.round(item.priceEach) !== Math.round(expectedPrice)) {
+        return NextResponse.json({ error: `${product.name_en} price changed. Refresh the shop and try again.` }, { status: 409 });
+      }
+
+      item.nameSnapshot = product.name_en;
+      item.unitSnapshot = product.unitLabel;
+      item.imageUrl = product.imageUrl;
+    }
 
     const qtyByProductId = new Map<string, number>();
     for (const item of normalizedItems) {
@@ -215,8 +284,6 @@ export async function POST(req: NextRequest) {
     const subtotal = normalizedItems.reduce((sum, item) => sum + item.priceEach * item.qty, 0);
     const deliveryFee = 0;
     const totalAmount = subtotal + deliveryFee;
-    const normalizedPhone = normalizePhone(body.phone);
-
     const order = await prisma.$transaction(async (tx) => {
       for (const product of products) {
         const requiredQty = qtyByProductId.get(product.id) ?? 0;
@@ -237,10 +304,11 @@ export async function POST(req: NextRequest) {
         data: {
           orderNumber: generateOrderNumber(),
           status: "PLACED",
+          customerId: customer.id,
 
-          customerName: body.customerName.trim(),
-          phone: normalizedPhone,
-          email: body.email?.trim() || null,
+          customerName: customer.fullName,
+          phone: normalizePhone(customer.phone),
+          email: customer.email,
           language: body.language?.trim() || "en",
 
           deliveryType,

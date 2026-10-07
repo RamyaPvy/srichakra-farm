@@ -104,6 +104,7 @@ model Order {
   id          String      @id @default(cuid())
   orderNumber String      @unique
   status      OrderStatus @default(PLACED)
+  customerId  String?
 
   customerName String
   phone        String
@@ -131,10 +132,12 @@ model Order {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  items OrderItem[]
+  items    OrderItem[]
+  customer Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
 
   @@index([status, createdAt])
   @@index([phone, createdAt])
+  @@index([customerId])
 }
 
 model OrderItem {
@@ -174,6 +177,7 @@ model Customer {
   updatedAt   DateTime          @updatedAt
 
   addresses   CustomerAddress[]
+  orders      Order[]
 }
 
 model CustomerAddress {

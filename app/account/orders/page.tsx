@@ -1,9 +1,7 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-
-type SearchParams = Promise<{
-  phone?: string;
-}>;
+import { getCurrentCustomer } from "@/lib/auth";
 
 function formatMoneyINR(amt: number): string {
   if (!Number.isFinite(amt)) return "—";
@@ -18,89 +16,69 @@ function formatDateTime(value: Date | string): string {
   });
 }
 
-type OrderItemView = {
-  id: string;
-  qty: number;
-  lineTotal: number;
-  nameSnapshot: string;
-  variantLabel?: string | null;
-};
+function normalizePhone(phone: string) {
+  return phone.replace(/\D/g, "");
+}
 
-type OrderView = {
-  id: string;
-  orderNumber: string;
-  customerName: string;
-  phone: string;
-  deliveryType: "DELIVERY" | "PICKUP";
-  totalAmount: number;
-  status: string;
-  createdAt: Date | string;
-  items: OrderItemView[];
-};
+export default async function AccountOrdersPage() {
+  const customer = await getCurrentCustomer();
 
-export default async function AccountOrdersPage({
-  searchParams,
-}: {
-  searchParams: SearchParams;
-}) {
-  const sp = await searchParams;
-  const phone = String(sp?.phone || "").trim();
+  if (!customer) {
+    redirect("/login?next=/account/orders");
+  }
 
-  const rawOrders = phone
-    ? await prisma.order.findMany({
-        where: {
-          phone: {
-            contains: phone,
-          },
+  const phoneVariants = [...new Set([customer.phone, normalizePhone(customer.phone)])];
+  const orders = await prisma.order.findMany({
+    where: {
+      OR: [
+        { customerId: customer.id },
+        { phone: { in: phoneVariants } },
+      ],
+    },
+    select: {
+      id: true,
+      orderNumber: true,
+      deliveryType: true,
+      totalAmount: true,
+      status: true,
+      createdAt: true,
+      items: {
+        select: {
+          id: true,
+          qty: true,
+          lineTotal: true,
+          nameSnapshot: true,
+          variantLabel: true,
         },
-        include: {
-          items: true,
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-      })
-    : [];
-
-  const orders = rawOrders as unknown as OrderView[];
+      },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+  });
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
-      <div className="mb-6">
-        <Link href="/account" className="text-sm text-zinc-600 hover:underline">
-          ← Back to My Account
-        </Link>
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <Link href="/account" className="text-sm text-zinc-600 hover:underline">
+            Back to My Account
+          </Link>
         <h1 className="mt-2 text-3xl font-bold">My Orders</h1>
         <p className="mt-2 text-sm text-zinc-600">
-          Enter your phone number to view your order history.
+            Your recent orders, delivery choices, and item details.
         </p>
-      </div>
-
-      <div className="mb-6 rounded-2xl border bg-white p-4">
-        <form className="flex flex-col gap-3 md:flex-row">
-          <input
-            type="text"
-            name="phone"
-            defaultValue={phone}
-            placeholder="Enter your phone number"
-            className="flex-1 rounded-lg border px-3 py-2 text-sm"
-          />
-          <button
-            type="submit"
-            className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white"
-          >
-            View Orders
-          </button>
-        </form>
-      </div>
-
-      {!phone ? (
-        <div className="rounded-2xl border bg-zinc-50 p-6 text-sm text-zinc-700">
-          Enter your phone number above to see your orders.
         </div>
-      ) : orders.length === 0 ? (
+        <Link href="/" className="rounded-lg bg-green-800 px-4 py-2 text-sm font-semibold text-white">
+          Continue shopping
+        </Link>
+      </div>
+
+      {orders.length === 0 ? (
         <div className="rounded-2xl border bg-zinc-50 p-6 text-sm text-zinc-700">
-          No orders found for this phone number.
+          <p>You have not placed an order yet.</p>
+          <Link href="/" className="mt-3 inline-block font-semibold text-green-800 underline">
+            Browse the farm shop
+          </Link>
         </div>
       ) : (
         <div className="space-y-6">

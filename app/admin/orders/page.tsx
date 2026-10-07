@@ -1,10 +1,14 @@
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { Prisma } from "@/generated/prisma/client";
+import { getCurrentAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 async function updateOrderStatus(formData: FormData) {
   "use server";
+
+  if (!(await getCurrentAdmin())) redirect("/admin/login?next=/admin/orders");
 
   const orderId = String(formData.get("orderId") || "");
   const status = String(formData.get("status") || "");

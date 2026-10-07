@@ -10,15 +10,19 @@ const PROTECTED_ROUTES = [
 ];
 
 export function proxy(request: NextRequest) {
-  const session = request.cookies.get("scf_customer_session");
+  const pathname = request.nextUrl.pathname;
+  const isAdminRoute = pathname.startsWith("/admin") && pathname !== "/admin/login";
+  const isCustomerRoute = PROTECTED_ROUTES.some((route) => pathname.startsWith(route));
 
-  const isProtected = PROTECTED_ROUTES.some((route) =>
-    request.nextUrl.pathname.startsWith(route)
-  );
+  if (isAdminRoute && !request.cookies.get("scf_admin_session")) {
+    const loginUrl = new URL("/admin/login", request.url);
+    loginUrl.searchParams.set("next", pathname);
+    return NextResponse.redirect(loginUrl);
+  }
 
-  if (isProtected && !session) {
+  if (isCustomerRoute && !request.cookies.get("scf_customer_session")) {
     const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("next", request.nextUrl.pathname);
+    loginUrl.searchParams.set("next", pathname);
 
     return NextResponse.redirect(loginUrl);
   }
@@ -27,5 +31,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/checkout/:path*", "/account/:path*"],
+  matcher: ["/checkout/:path*", "/account/:path*", "/admin/:path*"],
 };

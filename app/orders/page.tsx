@@ -1,9 +1,10 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import OrderStatusTimeline from "../components/order/OrderStatusTimeline";
+import { getCurrentCustomer } from "@/lib/auth";
 
 type SearchParams = Promise<{
-  phone?: string;
   orderNumber?: string;
 }>;
 
@@ -20,87 +21,43 @@ function formatDateTime(value: Date | string): string {
   });
 }
 
-type OrderItemView = {
-  id: string;
-  qty: number;
-  lineTotal: number;
-  nameSnapshot: string;
-  variantLabel?: string | null;
-};
-
-type OrderView = {
-  id: string;
-  orderNumber: string;
-  customerName: string;
-  phone: string;
-  deliveryType: "DELIVERY" | "PICKUP";
-  totalAmount: number;
-  status: string;
-  createdAt: Date | string;
-  items: OrderItemView[];
-};
-
 export default async function OrdersPage({
   searchParams,
 }: {
   searchParams: SearchParams;
 }) {
   const sp = await searchParams;
-  const phone = String(sp?.phone || "").trim();
+  const customer = await getCurrentCustomer();
+  if (!customer) redirect("/login?next=/orders");
+
   const orderNumber = String(sp?.orderNumber || "").trim();
+  const phoneVariants = [...new Set([customer.phone, customer.phone.replace(/\D/g, "")])];
 
-  let rawOrders: unknown[] = [];
-
-  if (phone || orderNumber) {
-    rawOrders = await prisma.order.findMany({
-      where: {
-        AND: [
-          phone
-            ? {
-                phone: {
-                  contains: phone,
-                },
-              }
-            : {},
-          orderNumber
-            ? {
-                orderNumber: {
-                  contains: orderNumber,
-                },
-              }
-            : {},
-        ],
-      },
-      include: {
-        items: true,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
-  }
-
-  const orders = rawOrders as OrderView[];
+  const orders = await prisma.order.findMany({
+    where: {
+      OR: [
+        { customerId: customer.id },
+        { phone: { in: phoneVariants } },
+      ],
+      ...(orderNumber ? { orderNumber: { contains: orderNumber } } : {}),
+    },
+    include: { items: true },
+    orderBy: { createdAt: "desc" },
+    take: 50,
+  });
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <div className="mb-6">
         <h1 className="text-3xl font-bold">Track Your Orders</h1>
         <p className="mt-2 text-sm text-zinc-600">
-          Search by phone number or order number to check your latest order status.
+          Your recent orders and delivery updates.
         </p>
+        <Link href="/" className="mt-3 inline-block text-sm font-semibold text-green-800 underline">Continue shopping</Link>
       </div>
 
       <div className="mb-6 rounded-2xl border bg-white p-4">
-        <form className="grid gap-3 md:grid-cols-3">
-          <input
-            type="text"
-            name="phone"
-            defaultValue={phone}
-            placeholder="Enter phone number"
-            className="rounded-lg border px-3 py-2 text-sm"
-          />
-
+        <form className="grid gap-3 md:grid-cols-[1fr_auto]">
           <input
             type="text"
             name="orderNumber"
@@ -118,13 +75,9 @@ export default async function OrdersPage({
         </form>
       </div>
 
-      {!phone && !orderNumber ? (
+      {orders.length === 0 ? (
         <div className="rounded-2xl border bg-zinc-50 p-6 text-sm text-zinc-700">
-          Enter your phone number or order number above to search for your orders.
-        </div>
-      ) : orders.length === 0 ? (
-        <div className="rounded-2xl border bg-zinc-50 p-6 text-sm text-zinc-700">
-          No orders found for the entered details.
+          No orders found. <Link href="/" className="font-semibold text-green-800 underline">Browse products</Link>
         </div>
       ) : (
         <div className="space-y-6">

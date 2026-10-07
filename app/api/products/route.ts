@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { Prisma, type Category, type FishTab } from "@/generated/prisma/client";
+import { getCurrentAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 const toInt = (v: unknown, fallback: number): number => {
@@ -15,6 +16,15 @@ const toNum = (v: unknown, fallback: number): number => {
 };
 
 const toStr = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
+
+const isValidImageUrl = (value: string): boolean => {
+  if (value.startsWith("/") && !value.startsWith("//")) return true;
+  try {
+    return new URL(value).protocol === "https:";
+  } catch {
+    return false;
+  }
+};
 
 const isValidCategory = (c: string): c is Category =>
   ["FISH", "SHEEP", "VEGETABLES", "RICE"].includes(c);
@@ -144,6 +154,10 @@ export async function GET(req: Request) {
     const includeInactive = searchParams.get("includeInactive") === "1";
     const take = Math.min(toInt(searchParams.get("take"), 100), 500);
 
+    if (includeInactive && !(await getCurrentAdmin())) {
+      return NextResponse.json({ error: "Not logged in as admin." }, { status: 401 });
+    }
+
     const where: Prisma.ProductWhereInput = {};
     if (!includeInactive) where.isActive = true;
 
@@ -192,6 +206,10 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    if (!(await getCurrentAdmin())) {
+      return NextResponse.json({ error: "Not logged in as admin." }, { status: 401 });
+    }
+
     const parsedBody: unknown = await req.json();
     const body = isRecord(parsedBody) ? parsedBody : {};
 
@@ -226,6 +244,10 @@ export async function POST(req: Request) {
 
     if (stockQty < 0) {
       return NextResponse.json({ error: "stockQty must be >= 0" }, { status: 400 });
+    }
+
+    if (imageUrl && !isValidImageUrl(imageUrl)) {
+      return NextResponse.json({ error: "imageUrl must be an HTTPS URL or a local asset path." }, { status: 400 });
     }
 
     const metaError = validateMeta(category, fishTab, metaJson);
@@ -271,6 +293,10 @@ export async function POST(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
+    if (!(await getCurrentAdmin())) {
+      return NextResponse.json({ error: "Not logged in as admin." }, { status: 401 });
+    }
+
     const parsedBody: unknown = await req.json();
     const body = isRecord(parsedBody) ? parsedBody : {};
 
@@ -312,7 +338,13 @@ export async function PATCH(req: Request) {
     }
 
     if (body.isActive !== undefined) data.isActive = !!body.isActive;
-    if (body.imageUrl !== undefined) data.imageUrl = body.imageUrl ? toStr(body.imageUrl) : null;
+    if (body.imageUrl !== undefined) {
+      const imageUrl = body.imageUrl ? toStr(body.imageUrl) : "";
+      if (imageUrl && !isValidImageUrl(imageUrl)) {
+        return NextResponse.json({ error: "imageUrl must be an HTTPS URL or a local asset path." }, { status: 400 });
+      }
+      data.imageUrl = imageUrl || null;
+    }
     if (body.name_en !== undefined) data.name_en = toStr(body.name_en);
     if (body.name_te !== undefined) data.name_te = body.name_te ? toStr(body.name_te) : null;
     if (body.name_hi !== undefined) data.name_hi = body.name_hi ? toStr(body.name_hi) : null;

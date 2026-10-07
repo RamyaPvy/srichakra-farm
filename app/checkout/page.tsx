@@ -1,11 +1,25 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "../store/cart";
 import { getErrorMessage } from "../components/helpers";
 
 type DeliveryType = "PICKUP" | "DELIVERY";
+
+type SavedAddress = {
+  id: string;
+  label: string | null;
+  fullName: string;
+  phone: string;
+  addressLine1: string;
+  addressLine2: string | null;
+  landmark: string | null;
+  city: string;
+  state: string;
+  pincode: string;
+  isDefault: boolean;
+};
 
 function formatMoneyINR(amt: number): string {
   if (!Number.isFinite(amt)) return "—";
@@ -43,6 +57,8 @@ export default function CheckoutPage() {
   const [stateName, setStateName] = useState("");
   const [pincode, setPincode] = useState("");
   const [mapLink, setMapLink] = useState("");
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState("");
   const [preferredSlot, setPreferredSlot] = useState("");
   const [notes, setNotes] = useState("");
 
@@ -52,6 +68,65 @@ export default function CheckoutPage() {
   const sub = useMemo(() => subtotal(), [subtotal]);
   const deliveryFee = 0;
   const totalAmount = sub + deliveryFee;
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadAccountDetails() {
+      try {
+        const [customerResponse, addressResponse] = await Promise.all([
+          fetch("/api/auth/me", { signal: controller.signal }),
+          fetch("/api/account/addresses", { signal: controller.signal }),
+        ]);
+
+        if (customerResponse.ok) {
+          const data = await customerResponse.json();
+          setCustomerName((value) => value || data.customer.fullName || "");
+          setPhone((value) => value || data.customer.phone || "");
+          setEmail((value) => value || data.customer.email || "");
+        }
+
+        if (addressResponse.ok) {
+          const data = await addressResponse.json();
+          const addresses = data.addresses as SavedAddress[];
+          setSavedAddresses(addresses);
+          const defaultAddress = addresses.find((address) => address.isDefault);
+          if (defaultAddress) {
+            setSelectedAddressId(defaultAddress.id);
+            setCustomerName((value) => value || defaultAddress.fullName);
+            setPhone((value) => value || defaultAddress.phone);
+            setAddressLine1(defaultAddress.addressLine1);
+            setAddressLine2(defaultAddress.addressLine2 || "");
+            setLandmark(defaultAddress.landmark || "");
+            setCity(defaultAddress.city);
+            setStateName(defaultAddress.state);
+            setPincode(defaultAddress.pincode);
+          }
+        }
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          setErr("We could not load your saved details. You can still enter them manually.");
+        }
+      }
+    }
+
+    loadAccountDetails();
+    return () => controller.abort();
+  }, []);
+
+  function selectSavedAddress(addressId: string) {
+    setSelectedAddressId(addressId);
+    const address = savedAddresses.find((item) => item.id === addressId);
+    if (!address) return;
+    setCustomerName(address.fullName);
+    setPhone(address.phone);
+    setAddressLine1(address.addressLine1);
+    setAddressLine2(address.addressLine2 || "");
+    setLandmark(address.landmark || "");
+    setCity(address.city);
+    setStateName(address.state);
+    setPincode(address.pincode);
+  }
 
   async function placeOrder() {
     setErr(null);
@@ -206,6 +281,24 @@ export default function CheckoutPage() {
 
           {deliveryType === "DELIVERY" && (
             <>
+              {savedAddresses.length > 0 ? (
+                <label className="text-sm font-medium text-zinc-700">
+                  Use a saved address
+                  <select
+                    value={selectedAddressId}
+                    onChange={(event) => selectSavedAddress(event.target.value)}
+                    className="mt-1.5 h-11 w-full rounded-xl border bg-white px-3"
+                  >
+                    <option value="">Enter a new address</option>
+                    {savedAddresses.map((address) => (
+                      <option key={address.id} value={address.id}>
+                        {address.label || address.addressLine1} · {address.city}{address.isDefault ? " (Default)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
+
               <input
                 className="h-11 rounded-xl border px-3"
                 placeholder="Delivery Address *"

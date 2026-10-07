@@ -20,15 +20,15 @@ const CATEGORY_IMAGE_FALLBACKS: Record<string, string> = {
 };
 
 const VEGETABLE_IMAGE_MAP: Record<string, string> = {
-  tomato: "/products/vegetables/tomato.svg",
-  tomatoes: "/products/vegetables/tomato.svg",
-  "green chilli": "/products/vegetables/green-chilli.svg",
-  "green chillies": "/products/vegetables/green-chilli.svg",
-  spinach: "/products/vegetables/spinach.svg",
-  cucumber: "/products/vegetables/cucumber.svg",
-  onion: "/products/vegetables/onion.svg",
-  "onion white": "/products/vegetables/onion.svg",
-  "white onion": "/products/vegetables/onion.svg",
+  tomato: "https://images.unsplash.com/photo-1546094096-0df4bcaaa337?auto=format&fit=crop&w=1200&q=85",
+  tomatoes: "https://images.unsplash.com/photo-1546094096-0df4bcaaa337?auto=format&fit=crop&w=1200&q=85",
+  "green chilli": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fe/Very_small_round_shaped_green_chili_peppers_from_West_Bengal%2C_India%2C_photographed_on_December_22%2C_2023.jpg/1280px-Very_small_round_shaped_green_chili_peppers_from_West_Bengal%2C_India%2C_photographed_on_December_22%2C_2023.jpg",
+  "green chillies": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fe/Very_small_round_shaped_green_chili_peppers_from_West_Bengal%2C_India%2C_photographed_on_December_22%2C_2023.jpg/1280px-Very_small_round_shaped_green_chili_peppers_from_West_Bengal%2C_India%2C_photographed_on_December_22%2C_2023.jpg",
+  spinach: "https://images.unsplash.com/photo-1576045057995-568f588f82fb?auto=format&fit=crop&w=1200&q=85",
+  cucumber: "https://images.unsplash.com/photo-1449300079323-02e209d9d3a6?auto=format&fit=crop&w=1200&q=85",
+  onion: "https://images.unsplash.com/photo-1518977956812-cd3dbadaaf31?auto=format&fit=crop&w=1200&q=85",
+  "onion white": "https://images.unsplash.com/photo-1518977956812-cd3dbadaaf31?auto=format&fit=crop&w=1200&q=85",
+  "white onion": "https://images.unsplash.com/photo-1518977956812-cd3dbadaaf31?auto=format&fit=crop&w=1200&q=85",
 };
 
 export function resolveProductImageUrl(
@@ -44,6 +44,10 @@ export function resolveProductImageUrl(
 
   const targetCategory = (category ?? "").toUpperCase();
 
+  if (fallback && !fallback.startsWith("/categories/")) {
+    return fallback;
+  }
+
   if (normalizedName) {
     const matches = Object.entries(VEGETABLE_IMAGE_MAP).find(([keyword]) => {
       const normalizedKeyword = keyword.toLowerCase().replace(/[^a-z0-9\s-]/g, " ");
@@ -55,10 +59,6 @@ export function resolveProductImageUrl(
     });
 
     if (matches) return matches[1];
-  }
-
-  if (fallback && !fallback.startsWith("/categories/")) {
-    return fallback;
   }
 
   if (targetCategory && CATEGORY_IMAGE_FALLBACKS[targetCategory]) {

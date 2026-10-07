@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { asRecord, getErrorMessage } from "../../components/helpers";
+import CloudImagePicker from "./CloudImagePicker";
 
 type Product = {
   id: string;
@@ -13,10 +14,11 @@ type Product = {
   price: number;
   stockQty: number;
   isActive: boolean;
+  imageUrl?: string | null;
   metaJson?: unknown;
 };
 
-type ProductPatch = Partial<Pick<Product, "price" | "stockQty" | "isActive">>;
+type ProductPatch = Partial<Pick<Product, "price" | "stockQty" | "isActive" | "imageUrl">>;
 
 function formatMoneyINR(amt: number): string {
   if (!Number.isFinite(amt)) return "—";
@@ -205,6 +207,7 @@ export default function AdminProductsPage() {
           <thead>
             <tr className="text-left text-zinc-500">
               <th className="py-2 pr-4">Name</th>
+              <th className="py-2 pr-4">Product photo</th>
               <th className="py-2 pr-4">Unit</th>
               <th className="py-2 pr-4">Price</th>
               <th className="py-2 pr-4">Stock</th>
@@ -230,6 +233,20 @@ export default function AdminProductsPage() {
                       {p.category === "FISH" && p.fishTab ? ` • ${p.fishTab}` : ""}
                       {p.category === "SHEEP" && sheepKind ? ` • ${sheepKind}` : ""}
                     </div>
+                  </td>
+
+                  <td className="min-w-48 py-3 pr-4">
+                    <CloudImagePicker
+                      value={p.imageUrl}
+                      onUpload={async (imageUrl) => {
+                        const updated = await patch(p.id, { imageUrl });
+                        setProducts((previous) =>
+                          previous.map((product) =>
+                            product.id === p.id ? { ...product, ...updated } : product
+                          )
+                        );
+                      }}
+                    />
                   </td>
 
                   <td className="py-3 pr-4">{p.unitLabel}</td>

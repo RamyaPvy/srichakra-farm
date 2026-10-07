@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getCurrentAdmin, getCurrentCustomer } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 type RouteContext = {
@@ -23,6 +24,11 @@ function isValidStatus(value: string): value is ValidStatus {
 export async function GET(_req: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
+    const customer = await getCurrentCustomer();
+    const admin = customer ? null : await getCurrentAdmin();
+    if (!customer && !admin) {
+      return NextResponse.json({ error: "Not logged in." }, { status: 401 });
+    }
 
     const order = await prisma.order.findUnique({
       where: { id },
@@ -32,6 +38,14 @@ export async function GET(_req: NextRequest, context: RouteContext) {
     });
 
     if (!order) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
+    if (
+      customer &&
+      order.customerId !== customer.id &&
+      !(order.customerId === null && order.phone.replace(/\D/g, "") === customer.phone.replace(/\D/g, ""))
+    ) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
@@ -47,6 +61,10 @@ export async function GET(_req: NextRequest, context: RouteContext) {
 
 export async function PATCH(req: NextRequest, context: RouteContext) {
   try {
+    if (!(await getCurrentAdmin())) {
+      return NextResponse.json({ error: "Not logged in as admin." }, { status: 401 });
+    }
+
     const { id } = await context.params;
     const body = await req.json();
 
